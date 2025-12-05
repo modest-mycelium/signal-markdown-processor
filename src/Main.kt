@@ -45,6 +45,23 @@ private fun registerTests() {
                 " for the BodyRangeList?",
     )
 
+    val testIgnoreEscIfNotBeforeCtrlChar = """these \ slashes \ should \ remain \ but \*these\* two will vanish"""
+    val expIgnoreEscIfNotBeforeCtrlChar = """these \ slashes \ should \ remain \ but *these* two will vanish"""
+    Tester.registerTest(
+        title = "ignoreEscIfNotBeforeCtrlChar",
+        testFun = { process(testIgnoreEscIfNotBeforeCtrlChar).first },
+        expected = expIgnoreEscIfNotBeforeCtrlChar,
+    )
+
+    // hello \* @mention
+    val testEscWithExistingStyleRanges = BodyRangeList(listOf(BodyRange(start = 9, length = 8)))
+    val expEscWithExistingStyleRanges = BodyRangeList(listOf(BodyRange(start = 8, length = 8)))
+    Tester.registerTest(
+        title = "escWithExistingStyleStr",
+        testFun = { process(body = """hello \* @mention""", bodyRanges = testEscWithExistingStyleRanges) },
+        expected = "hello * @mention" to expEscWithExistingStyleRanges,
+    )
+
     val testWithMonoWithEscA = """`\*e\* \_s\_ \`c\\\` \~~a\~~ \||p\|| \\e\\ \\ \\\* \\\_ \\\~ \\\| \`"""
     val expWithMonoWithEscA =  """\*e\* \_s\_ \c\` ~~a~~ ||p|| \e\ \ \* \_ \~ \| `"""
     Tester.registerTest(
@@ -53,7 +70,25 @@ private fun registerTests() {
         expected = expWithMonoWithEscA,
     )
 
-    // TODO: add more md tests
+    Tester.registerTest(
+        title = "withMonoWithEscB",
+        testFun = { process("""~~pass~~
+`~~fail~~`
+`~~fail~~\`
+\`~~pass~~
+\`\~~fail~~
+\~~fail\~~fail~~pass~~
+` `~~pass~~` ~~fail~~`
+\`~~pass~~\` \\\\`~~fail~~\\\\``""").first },
+        expected = """pass
+~~fail~~
+~~fail~~\
+`pass
+`~~fail~~
+~~fail~~failpass
+ pass ~~fail~~
+`pass` \\pass\\\\""",
+    )
 
     /**
      * 0....,....1....,....2....,....3....,....4....,....5....,....6
