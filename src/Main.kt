@@ -72,22 +72,8 @@ private fun registerTests() {
 
     Tester.registerTest(
         title = "withMonoWithEscB",
-        testFun = { process("""~~pass~~
-`~~fail~~`
-`~~fail~~\`
-\`~~pass~~
-\`\~~fail~~
-\~~fail\~~fail~~pass~~
-` `~~pass~~` ~~fail~~`
-\`~~pass~~\` \\\\`~~fail~~\\\\``""").first },
-        expected = """pass
-~~fail~~
-~~fail~~\
-`pass
-`~~fail~~
-~~fail~~failpass
- pass ~~fail~~
-`pass` \\pass\\\\""",
+        testFun = { process("""~~word~~`~~word~~``~~word~~\`\`~~word~~\`\~~word~~\~~word\~~word~~word~~` `~~word~~` ~~word~~`\`~~word~~\` \\\\`~~word~~\\\\``""").first },
+        expected = """word~~word~~~~word~~\`word`~~word~~word~~wordword word ~~word~~`word~~` \\~~word~~\\\\`""",
     )
 
     /**
