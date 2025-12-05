@@ -89,7 +89,7 @@ private fun processMarkdownTokens(str: String, sumTokens: IntArray): Pair<String
             sumTokens[i] = 1
             escaped = true
         } else if (c in "*_~|") { // is a style token character
-            val dt = "$c$c"
+            val dt = "$c$c" // (d)ouble (t)oken
             if (openTokens[dt]!! && str.length > i + 1 && c == str[i + 1]) { // dt is a closing token
                 sumTokens[openTokenInd[dt]!!] = 1
                 sumTokens[openTokenInd[dt]!! + 1] = 1
@@ -116,22 +116,23 @@ private fun processMarkdownTokens(str: String, sumTokens: IntArray): Pair<String
                 openTokenInd[dt] = i
                 isToken = true // this is to skip the next character that we already know is a token
             } else if (c in "*_") { // is an italic token (checked after double tokens to ensure bold is processed)
-                if (openTokens["$c"]!!) { // this is a closing italic token
+            	val st = "$c" // (s)ingle (t)oken; openTokens and openTokenInd have key type String
+	    	if (openTokens[st]!!) { // this is a closing italic token
                     sumTokens[i] = 1
 
                     resultRanges.add(BodyRange(
-                        start = openTokenInd["$c"]!! + 1,
-                        length = i - openTokenInd["$c"]!!,
+                        start = openTokenInd[st]!! + 1,
+                        length = i - openTokenInd[st]!!,
                         style = Style.ITALIC,
                     ))
 
-                    openTokens["$c"] = false
-                    openTokenInd.remove("$c")
+                    openTokens[st] = false
+                    openTokenInd.remove(st)
                 } else { // this is an opening italic token
                     sumTokens[i] = 1
 
-                    openTokens["$c"] = true
-                    openTokenInd["$c"] = i
+                    openTokens[st] = true
+                    openTokenInd[st] = i
                 }
             }
         }
