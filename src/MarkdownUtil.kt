@@ -17,16 +17,10 @@ fun process(body: String, bodyRanges: BodyRangeList? = null): Pair<String, BodyR
     val sumTokens = IntArray(body.length) { 0 }
     val (bodySansMdTokens, mdRanges) = processMarkdownTokens(body, sumTokens)
 
-    val resultRanges = if (mdRanges.isNotEmpty()) {
-        adjustRanges(bodyRanges?.ranges.orEmpty() + mdRanges, sumTokens)
-    } else {
-        bodyRanges
-    }
-
-    return bodySansMdTokens to resultRanges
+    return bodySansMdTokens to adjustRanges(bodyRanges?.ranges.orEmpty() + mdRanges, sumTokens)
 }
 
-private fun adjustRanges(ranges: List<BodyRange>, sumTokens: IntArray): BodyRangeList {
+private fun adjustRanges(ranges: List<BodyRange>, sumTokens: IntArray): BodyRangeList? {
     val result = mutableListOf<BodyRange>()
 
     for (r in ranges) {
@@ -44,7 +38,7 @@ private fun adjustRanges(ranges: List<BodyRange>, sumTokens: IntArray): BodyRang
         ))
     }
 
-    return BodyRangeList(ranges = result)
+    return if (result.isEmpty()) null else BodyRangeList(ranges = result)
 }
 
 private fun processMarkdownTokens(str: String, sumTokens: IntArray): Pair<String, List<BodyRange>> {
@@ -62,9 +56,10 @@ private fun processMarkdownTokens(str: String, sumTokens: IntArray): Pair<String
 
     for ((i, c) in str.withIndex()) {
         if (isToken) { // previous iteration determined this character is a token (used for double tokens like ~~)
-            sumTokens[i] = 1
+            // sumTokens is not set here; this is handled by the close double token logic
             isToken = false
         } else if (escaped) { // previous character escaped this one
+            if (c == '`') remainingBackticks--
             escaped = false
         } else if (c == '`') { // non-escaped backtick
             if (openTokens["`"]!!) { // this is a closing backtick
@@ -90,7 +85,7 @@ private fun processMarkdownTokens(str: String, sumTokens: IntArray): Pair<String
             }
         } else if (openTokens["`"]!!) { // all characters after an openBacktick should be treated as raw characters
             // we don't need to do anything here except make sure no conditionals further down the chain are run
-        } else if (c == '\\') { // is the escape character
+        } else if (c == '\\' && str.length > i + 1 && str[i + 1] in """\`*_~|""") { // is escaping next character
             sumTokens[i] = 1
             escaped = true
         } else if (c in "*_~|") { // is a style token character
@@ -116,8 +111,7 @@ private fun processMarkdownTokens(str: String, sumTokens: IntArray): Pair<String
                 openTokenInd.remove(dt)
                 isToken = true // this is to skip the next character that we already know is a token
             } else if (!openTokens[dt]!! && str.length > i + 1 && c == str[i + 1]) { // dt is an opening token
-                sumTokens[i] = 1
-
+                // we do NOT set sumTokens as this token may never be closed, and thus should be ignored
                 openTokens[dt] = true
                 openTokenInd[dt] = i
                 isToken = true // this is to skip the next character that we already know is a token
